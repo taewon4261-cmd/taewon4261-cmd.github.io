@@ -6,7 +6,7 @@ import os
 
 # ==========================================
 # [페이지 기본 설정]
-# 🚀 핵심: initial_sidebar_state="collapsed" -> 처음엔 사이드바를 숨겨둡니다.
+# 🚀 초기 상태: 사이드바 닫힘 (collapsed)
 # ==========================================
 st.set_page_config(
     page_title="대국민 쓸데없는 자격증 발급소",
@@ -18,12 +18,9 @@ st.set_page_config(
 # ==========================================
 # [설정 영역]
 # ==========================================
-
-# 🅰️ 폰트 파일 설정 (전부 궁서체!)
 FONT_PATH_MAIN = "gungseo.ttc" 
 FONT_PATH_TITLE = "gungseo.ttc" 
 
-# 🅱️ 좌표 및 크기 설정
 HEADER_X, HEADER_Y = 380, 160
 FONT_SIZE_HEADER = 80 
 
@@ -47,13 +44,11 @@ FONT_SIZE_STAMP = 45
 TEXT_COLOR = (0, 0, 0)
 STAMP_COLOR = (230, 0, 0, 220)
 
-# 저장할 파일 이름
 DONOR_FILE = "donors.csv"
 
 # ==========================================
-# [데이터베이스 및 상태 관리]
+# [데이터베이스]
 # ==========================================
-
 CERT_DB = {
     "직접 입력": {"desc": "직접 입력해주세요.", "footer": "직접 입력해주세요.", "stamp_text": "내가 일짱"},
     "집밥 미슐랭 1급": {"desc": "위 사람은 눈대중과 손맛만으로 5성급 호텔 요리를 선사하며, '맛없으면 먹지 마'라고 해도 밥 두 공기를 비우게 만들기에 임명함.", "footer": "전국 확찐자 연합회", "stamp_text": "신의 손맛"},
@@ -73,13 +68,19 @@ CERT_DB = {
     "스마트폰 중독 1급": {"desc": "위 사람은 화장실 갈 때 폰이 없으면 변비에 걸리며, 배터리 20% 미만 시 손을 떠는 금단현상을 보였기에 임명함.", "footer": "도파민의 노예들", "stamp_text": "도파민 중독"},
 }
 
-# --- 💾 CSV 파일 로드 및 저장 ---
+# ==========================================
+# [함수 정의]
+# ==========================================
+
+# 1. 파일 불러오기 (안전장치 추가)
 def load_donors():
     if os.path.exists(DONOR_FILE):
         try:
             df = pd.read_csv(DONOR_FILE)
-            if '금액' in df.columns:
-                df['금액'] = df['금액'].fillna(0).astype(int)
+            # 금액 컬럼이 없으면 생성, 이상한 값은 0으로 처리
+            if '금액' not in df.columns:
+                df['금액'] = 0
+            df['금액'] = pd.to_numeric(df['금액'], errors='coerce').fillna(0).astype(int)
             return df.to_dict('records')
         except:
             return []
@@ -93,13 +94,8 @@ def save_donors(donor_list):
     df = pd.DataFrame(donor_list)
     df.to_csv(DONOR_FILE, index=False)
 
-if 'donors' not in st.session_state:
-    st.session_state.donors = load_donors()
-
-# 현재 화면 상태 관리 (HOME -> INPUT -> RESULT)
-if 'page_state' not in st.session_state:
-    st.session_state.page_state = 'HOME'
-
+# 2. 🔥 [에러 수정됨] 총 모금액 계산 함수
+# 숫자가 아닌 게 들어와도 에러 안 나게 'try-except'로 감쌌습니다.
 def get_total_donation():
     if not st.session_state.donors:
         return 0
@@ -109,12 +105,11 @@ def get_total_donation():
             amount = item.get('금액', 0)
             if pd.isna(amount) or amount == '':
                 amount = 0
-            total += int(float(amount))
+            total += int(float(str(amount))) # 문자열이어도 숫자로 변환 시도
         except:
-            continue
+            continue # 변환 실패하면 무시하고 다음으로
     return total
 
-# --- 🛠️ 헬퍼 함수들 ---
 def wrap_text(text, font, max_width, draw):
     lines = []
     paragraphs = text.split('\n')
@@ -149,34 +144,41 @@ def get_fitted_title_font(text, max_width, draw, font_path, start_size, min_size
     return ImageFont.truetype(font_path, min_size)
 
 # ==========================================
+# [상태 관리 초기화]
+# ==========================================
+if 'donors' not in st.session_state:
+    st.session_state.donors = load_donors()
+
+if 'page_state' not in st.session_state:
+    st.session_state.page_state = 'HOME'
+
+
+# ==========================================
 # [화면 구성 로직]
 # ==========================================
 
-# 1. 🏠 시작 화면 (HOME)
+# 1. 🏠 시작 화면 (HOME) - 사이드바 닫힘
 if st.session_state.page_state == 'HOME':
-    # 여기 제목 뒤에 (Ver.2)를 붙여서 저장해보세요!
-    st.title("🎖️ 대국민 쓸데없는 자격증 발급소 (Ver.2)")
+    st.title("🎖️ 대국민 쓸데없는 자격증 발급소")
     st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDdtY2J6eHoxMXZ6bHoxMXZ6bHoxMXZ6bHoxMXZ6bHoxMXZ6bHoxMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7bu3XilJ5BOiSGic/giphy.gif", width=300)
     st.markdown("### 당신의 잉여력을 증명하세요!")
     
-    # 여기서 버튼을 누르면 -> 입력 단계로 넘어감
+    st.markdown("---")
+    
+    # 이 버튼을 누르면 입력 화면으로 이동
     if st.button("🚀 자격증 생성하러 가기", type="primary", use_container_width=True):
         st.session_state.page_state = 'INPUT'
         st.rerun()
 
-    st.markdown("---")
-    st.info("👈 (개발자 메뉴는 나중에 왼쪽 사이드바를 확인하세요)")
 
-
-# 2. 📝 입력 화면 (INPUT)
+# 2. 📝 입력 화면 (INPUT) - 사이드바 열림
 elif st.session_state.page_state == 'INPUT':
     
-    # 메인 화면 안내 문구
+    # 메인 화면 안내
     st.title("📝 정보 입력 단계")
-    st.info("👈 **왼쪽 상단의 화살표(>)**를 눌러 사이드바를 열고 정보를 입력해주세요!")
-    st.image("https://media.giphy.com/media/l0HlO3BJ8LxrZHGxh/giphy.gif", width=200)
-
-    # --- 사이드바 구성 (입력창 열림) ---
+    st.info("👈 **왼쪽 사이드바**가 열렸습니다! 정보를 입력해주세요.")
+    
+    # 사이드바 내용 구성
     with st.sidebar:
         st.header("📝 정보 입력")
         
@@ -204,7 +206,7 @@ elif st.session_state.page_state == 'INPUT':
         
         # 🔥 [핵심] 사이드바 안의 "제작하기" 버튼
         if st.button("✨ 제작하기 (완료)", type="primary", use_container_width=True):
-            # 입력값 세션에 저장
+            # 입력값을 저장하고 결과 화면으로 이동
             st.session_state.input_data = {
                 "name": user_name,
                 "title": cert_title_input,
@@ -212,25 +214,24 @@ elif st.session_state.page_state == 'INPUT':
                 "footer": footer_text,
                 "stamp": stamp_text_input
             }
-            # 결과 화면으로 이동
             st.session_state.page_state = 'RESULT'
             st.rerun()
-
-        # 뒤로가기 버튼
-        if st.button("🏠 홈으로"):
+            
+        # 취소 버튼
+        if st.button("🏠 처음으로"):
             st.session_state.page_state = 'HOME'
             st.rerun()
 
 
-# 3. 🎉 결과 화면 (RESULT)
+# 3. 🎉 결과 화면 (RESULT) - 사이드바 닫고 결과 보여줌
 elif st.session_state.page_state == 'RESULT':
     st.title("🎉 자격증 발급 완료!")
     st.balloons() # 축하 효과
 
-    # 저장된 데이터 가져오기
+    # 저장된 데이터 사용
     data = st.session_state.input_data
 
-    # 이미지 생성 로직
+    # 이미지 생성
     try:
         bg_image = Image.open("certificate_bg.png")
         draw = ImageDraw.Draw(bg_image)
@@ -284,12 +285,11 @@ elif st.session_state.page_state == 'RESULT':
         except Exception as e:
             st.warning(f"도장 오류: {e}")
 
-        # 결과 이미지 출력
+        # 결과 이미지 표시
         st.image(bg_image, caption=f"{data['name']}님의 자격증", use_container_width=True)
         
-        # 버튼 2개 나란히 배치 (다운로드 / 새로 만들기)
+        # 버튼 배치 (이미지 저장 / 새로 만들기)
         col1, col2 = st.columns(2)
-        
         with col1:
             buf = io.BytesIO()
             bg_image.save(buf, format="PNG")
@@ -301,21 +301,20 @@ elif st.session_state.page_state == 'RESULT':
                 type="primary",
                 use_container_width=True
             )
-            
         with col2:
             if st.button("🔄 새로운 자격증 만들기", use_container_width=True):
-                st.session_state.page_state = 'INPUT' # 입력 단계로 돌아가기
+                st.session_state.page_state = 'INPUT'
                 st.rerun()
-
+                
     except Exception as e:
         st.error(f"오류 발생: {e}")
 
 
 # ==========================================
-# [공통 사이드바 요소] (입력 단계 아닐 때도 보이는 것들)
+# [공통 사이드바 요소]
+# 입력 화면(INPUT)일 때만 밑에 후원/문의 탭을 보여줍니다.
 # ==========================================
-# 결과 화면 등에서도 후원하기나 문의하기는 보이면 좋으므로 밑에 배치
-if st.session_state.page_state != 'HOME': # 홈 화면만 아니면 표시
+if st.session_state.page_state == 'INPUT':
     with st.sidebar:
         st.markdown("---")
         total_money = get_total_donation()
@@ -347,7 +346,10 @@ if st.session_state.page_state != 'HOME': # 홈 화면만 아니면 표시
                         key="editor"
                     )
                     if st.button("저장하기 💾"):
-                        edited_df['금액'] = edited_df['금액'].fillna(0)
+                        # 여기서도 안전장치 추가
+                        if '금액' in edited_df.columns:
+                            edited_df['금액'] = pd.to_numeric(edited_df['금액'], errors='coerce').fillna(0).astype(int)
+                            
                         new_data = edited_df.to_dict("records")
                         st.session_state.donors = new_data
                         save_donors(new_data)
