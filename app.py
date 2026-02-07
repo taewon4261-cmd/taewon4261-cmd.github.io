@@ -126,7 +126,7 @@ with st.sidebar:
             cert_title_input = st.text_input("자격증 이름", value="코딩 천재 1급")
             cert_desc_input = st.text_area("내용", value="내용을 입력하세요.")
             footer_text = st.text_input("발급 기관", value="코딩 협회")
-            stamp_text_input = st.text_input("도장 문구", value="참 잘했어요")
+            stamp_text_input = st.text_input("도장 문구 (띄어쓰기로 줄바꿈)", value="참 잘했어요")
         else:
             # 선택된 값 자동 세팅
             cert_title_input = selected_cert
