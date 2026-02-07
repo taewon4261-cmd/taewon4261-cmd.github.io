@@ -1,6 +1,7 @@
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import io
+import pandas as pd # 데이터프레임 사용을 위해 추가
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -14,17 +15,15 @@ st.set_page_config(
 # ==========================================
 
 # 🅰️ 폰트 파일 설정
-# 1. 본문용 폰트 (가독성 좋은 고딕체 등)
-FONT_PATH_MAIN ="gungseo.ttc" 
-# 2. 제목용 궁서체 폰트 (상단 '자격증' 글씨용)
+# 1. 본문용 폰트
+FONT_PATH_MAIN = "font.ttf" 
+# 2. 제목용 궁서체 폰트
 FONT_PATH_TITLE = "gungseo.ttc" 
 
 # 🅱️ 좌표 및 크기 설정
-# 상단 '자격증' 왕글씨 위치
 HEADER_X, HEADER_Y = 380, 160
 FONT_SIZE_HEADER = 80 
 
-# 기존 위치 좌표
 NAME_X, NAME_Y = 150, 280
 TITLE_X, TITLE_Y = 150, 400
 DESC_X, DESC_Y = 150, 525
@@ -36,19 +35,19 @@ STAMP_SIZE = (250, 250)
 STAMP_TEXT_X_OFFSET = 250
 STAMP_TEXT_Y_OFFSET = 65
 
-# 글자 크기
 FONT_SIZE_NAME = 55
 FONT_SIZE_TITLE_DEFAULT = 50
 FONT_SIZE_DESC = 30
 FONT_SIZE_FOOTER = 40
 FONT_SIZE_STAMP = 45
 
-# 색상
 TEXT_COLOR = (0, 0, 0)
 STAMP_COLOR = (230, 0, 0, 220)
+
+# ==========================================
+# [데이터베이스 및 상태 관리]
 # ==========================================
 
-# 📜 [데이터베이스]
 CERT_DB = {
     "협곡의 지배자 1급": {"desc": "위 사람은 '오빠 갱 안와?'를 시전하며 남 탓하기의 달인이고, 키보드 샷건 치기의 장인이기에 임명함.", "footer": "전국 키보드 워리어 협회", "stamp_text": "남탓 장인"},
     "프로 먹방러 1급": {"desc": "위 사람은 치킨 뼈를 보았을 때 양념인지 후라이드인지 구분하며, '맛있으면 0칼로리'를 과학적으로 증명했기에 임명함.", "footer": "배달의 민족 VVIP", "stamp_text": "돼지 보스"},
@@ -64,6 +63,19 @@ CERT_DB = {
     "스마트폰 중독 1급": {"desc": "위 사람은 화장실 갈 때 폰이 없으면 변비에 걸리며, 배터리 20% 미만 시 손을 떠는 금단현상을 보였기에 임명함.", "footer": "도파민의 노예들", "stamp_text": "도파민 중독"},
     "직접 입력": {"desc": "직접 입력해주세요.", "footer": "직접 입력해주세요.", "stamp_text": "내가 일짱"}
 }
+
+# 💰 [후원자 데이터 관리]
+# Session State를 사용하여 앱이 실행되는 동안 데이터를 유지합니다.
+if 'donors' not in st.session_state:
+    st.session_state.donors = [
+        {"이름": "익명의 천사", "금액": 100},
+        {"이름": "지나가던 행인", "금액": 10},
+    ]
+
+# 총 모금액 계산 함수
+def get_total_donation():
+    return sum(item['금액'] for item in st.session_state.donors)
+
 
 # --- 🛠️ 헬퍼 함수들 ---
 def wrap_text(text, font, max_width, draw):
@@ -103,7 +115,7 @@ def get_fitted_title_font(text, max_width, draw, font_path, start_size, min_size
 # [메인 화면 UI 구성]
 # ==========================================
 
-# 1. 사이드바 구성 (순서: 메뉴 -> 입력창 -> 후원)
+# 1. 사이드바 구성
 with st.sidebar:
     st.header("📂 메뉴 선택")
     menu = st.radio(
@@ -111,20 +123,18 @@ with st.sidebar:
         ["🏆 자격증 발급소", "🔮 심리테스트 (준비중)", "🤖 AI 캐릭터 (준비중)"]
     )
     
-    # 구분선
     st.markdown("---")
 
-    # 🟢 [수정됨] 자격증 입력 폼
+    # 🟢 자격증 입력 폼
     if menu == "🏆 자격증 발급소":
         st.subheader("📝 자격증 정보 입력")
         
         user_name = st.text_input("이름", value="홍길동")
         
-        # 🔑 [핵심 로직] '직접 입력'을 맨 위로 올리는 코드
         cert_list = list(CERT_DB.keys())
         if "직접 입력" in cert_list:
-            cert_list.remove("직접 입력") # 리스트에서 뺀 다음
-            cert_list.insert(0, "직접 입력") # 맨 앞에 다시 넣기
+            cert_list.remove("직접 입력")
+            cert_list.insert(0, "직접 입력")
             
         selected_cert = st.selectbox("자격증 종류", cert_list)
 
@@ -136,21 +146,55 @@ with st.sidebar:
         else:
             cert_title_input = selected_cert
             cert_desc_input = CERT_DB[selected_cert]["desc"]
-            footer_text = CERT_DB[selected_cert]["footㅇer"]
+            footer_text = CERT_DB[selected_cert]["footer"]
             stamp_text_input = CERT_DB[selected_cert]["stamp_text"]
 
-    # 🟢 [수정됨] 현실적인 노트북 구매 메타
     st.markdown("---")
+    
+    # 🟢 개발자 노트북 사주기 (자동 합산 적용)
+    total_money = get_total_donation() # 현재 총액 계산
+    
     st.header(" 티끌모아 노트북 💻 ")
-    st.markdown("""
+    st.markdown(f"""
     코딩하다가 자꾸 렉이 걸려요... 😭  
     여러분의 **소중한 100원**을 모아  
     **개발용 노트북**을 장만하겠습니다!🙇‍♂️
     
-    **(모금액: 1138원 / 1,500,000원)**
+    **(모금액: {total_money:,}원 / 1,500,000원)**
     """)
     st.code("1000-4564-3898", language="text")
     st.caption("토스/카뱅 복사해서 '엔터키' 하나 사주기 ⌨️")
+    
+    # 🟢 [신규 기능] 후원자 목록 (명예의 전당)
+    with st.expander("📜 명예의 전당 (후원자 목록)"):
+        # 1. 데이터프레임으로 목록 보여주기
+        if st.session_state.donors:
+            df = pd.DataFrame(st.session_state.donors)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            st.write("아직 후원자가 없습니다 ㅠㅠ")
+        
+        st.markdown("---")
+        
+        # 2. 관리자 모드 (비밀번호 걸기)
+        is_admin = st.checkbox("관리자 모드 (후원자 추가)")
+        
+        if is_admin:
+            password = st.text_input("관리자 비밀번호", type="password")
+            if password == "1234": # 🔐 비밀번호: 1234
+                st.success("로그인 성공!")
+                new_donor_name = st.text_input("후원자 이름")
+                new_donor_amount = st.number_input("후원 금액", min_value=0, step=100)
+                
+                if st.button("명단 추가"):
+                    if new_donor_name and new_donor_amount > 0:
+                        st.session_state.donors.append({"이름": new_donor_name, "금액": int(new_donor_amount)})
+                        st.success(f"{new_donor_name}님 추가 완료! (총액 반영됨)")
+                        st.rerun() # 화면 새로고침해서 금액 즉시 반영
+                    else:
+                        st.error("이름과 금액을 확인해주세요.")
+            elif password:
+                st.error("비밀번호가 틀렸습니다.")
 
 # 2. 메인 화면 안내 문구
 st.info("👈 **왼쪽 상단의 화살표(>)**를 눌러 정보 입력창을 열어주세요!")
@@ -167,7 +211,7 @@ if menu == "🏆 자격증 발급소":
             
             # --- 폰트 로드 ---
             try:
-                # 1. 제목용 궁서체 (.ttc 파일 적용!)
+                # 1. 제목용 궁서체
                 try:
                     font_header = ImageFont.truetype(FONT_PATH_TITLE, FONT_SIZE_HEADER)
                 except:
@@ -178,13 +222,13 @@ if menu == "🏆 자격증 발급소":
                 font_footer = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_FOOTER)
                 font_stamp = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_STAMP)
             except:
-                st.error("🚨 폰트 로드 실패! 'gungseo.ttc' 또는 'font.ttf' 파일이 있는지 확인하세요.")
+                st.error("🚨 폰트 로드 실패! 'gungseo.ttc' 또는 'font.ttf' 확인 필요.")
                 font_header = ImageFont.load_default()
                 font_desc = ImageFont.load_default()
                 font_footer = ImageFont.load_default()
                 font_stamp = ImageFont.load_default()
 
-            # [그리기 0] '자 격 증' 왕글씨 (궁서체)
+            # [그리기 0] '자 격 증' 왕글씨
             draw.text((HEADER_X, HEADER_Y), "자 격 증", fill=TEXT_COLOR, font=font_header, anchor="mm")
 
             # [그리기 1] 이름
