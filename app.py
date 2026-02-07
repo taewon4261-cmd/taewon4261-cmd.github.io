@@ -17,7 +17,7 @@ st.set_page_config(
 # 1. 본문용 폰트 (기존 파일)
 FONT_PATH_MAIN = "font.ttf"
 # 2. 제목용 궁서체 폰트 (새로 업로드 하세요!)
-FONT_PATH_TITLE = "gungseo.ttf" 
+FONT_PATH_TITLE = "gungseo.ttc" 
 
 # 🅱️ 좌표 및 크기 설정
 # 상단 '자격증' 왕글씨 (궁서체 적용 예정)
