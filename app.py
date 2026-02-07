@@ -21,7 +21,7 @@ FONT_PATH_TITLE = "gungseo.ttf"
 
 # 🅱️ 좌표 및 크기 설정
 # 상단 '자격증' 왕글씨 (궁서체 적용 예정)
-HEADER_X, HEADER_Y = 300, 160
+HEADER_X, HEADER_Y = 380, 160
 FONT_SIZE_HEADER = 80 
 
 # 기존 위치 좌표
