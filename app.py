@@ -1,7 +1,8 @@
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import io
-import pandas as pd # 데이터 처리를 위해 필수
+import pandas as pd
+import os
 
 # 페이지 기본 설정
 st.set_page_config(
@@ -42,6 +43,9 @@ FONT_SIZE_STAMP = 45
 TEXT_COLOR = (0, 0, 0)
 STAMP_COLOR = (230, 0, 0, 220)
 
+# 저장할 파일 이름
+DONOR_FILE = "donors.csv"
+
 # ==========================================
 # [데이터베이스 및 상태 관리]
 # ==========================================
@@ -62,17 +66,36 @@ CERT_DB = {
     "직접 입력": {"desc": "직접 입력해주세요.", "footer": "직접 입력해주세요.", "stamp_text": "내가 일짱"}
 }
 
-# 💰 [후원자 데이터 관리]
-if 'donors' not in st.session_state:
-    st.session_state.donors = [
-        {"이름": "익명의 천사", "금액": 100},
-        {"이름": "지나가던 행인", "금액": 10},
-    ]
+# --- 💾 [핵심 기능] CSV 파일 로드 및 저장 ---
+def load_donors():
+    """CSV 파일이 있으면 불러오고, 없으면 기본값 반환"""
+    if os.path.exists(DONOR_FILE):
+        try:
+            df = pd.read_csv(DONOR_FILE)
+            return df.to_dict('records')
+        except:
+            return []
+    else:
+        # 파일이 없을 때 기본 데이터 (처음 시작할 때)
+        return [
+            {"이름": "익명의 천사", "금액": 100},
+            {"이름": "지나가던 행인", "금액": 10},
+        ]
 
-# 총 모금액 계산 함수
+def save_donors(donor_list):
+    """리스트를 CSV 파일로 저장"""
+    df = pd.DataFrame(donor_list)
+    df.to_csv(DONOR_FILE, index=False)
+
+# 세션 상태 초기화 (앱 켜질 때 딱 한 번 실행)
+if 'donors' not in st.session_state:
+    st.session_state.donors = load_donors()
+
+# 총 모금액 계산
 def get_total_donation():
     if not st.session_state.donors:
         return 0
+    # 문자열로 저장됐을 수도 있으니 int로 변환
     return sum(int(item['금액']) for item in st.session_state.donors)
 
 
@@ -114,7 +137,6 @@ def get_fitted_title_font(text, max_width, draw, font_path, start_size, min_size
 # [메인 화면 UI 구성]
 # ==========================================
 
-# 1. 사이드바 구성
 with st.sidebar:
     st.header("📂 메뉴 선택")
     menu = st.radio(
@@ -167,10 +189,8 @@ with st.sidebar:
     # 🟢 [업그레이드 기능] 후원자 목록 및 편집
     with st.expander("📜 명예의 전당 (후원자 목록)"):
         
-        # 1. 관리자 모드 체크
         is_admin = st.checkbox("관리자 모드 (수정/삭제)")
         
-        # 2. 데이터프레임 생성
         if st.session_state.donors:
             df = pd.DataFrame(st.session_state.donors)
         else:
@@ -179,31 +199,40 @@ with st.sidebar:
         if is_admin:
             password = st.text_input("관리자 비밀번호", type="password")
             if password == "0416": # 🔐 비밀번호
-                st.success("관리자 인증 성공! 표를 직접 수정하세요.")
-                st.caption("💡 팁: 클릭해서 수정, 행 선택 후 Delete 키로 삭제, 맨 아래 + 버튼으로 추가")
-                
-                # 🔥 여기서 엑셀처럼 편집 가능!
+                st.success("관리자 인증 성공! 데이터를 관리하세요.")
+                st.info("⚠️ 중요: 파일 업데이트 시 데이터가 날아갈 수 있습니다. 꼭 [명단 다운로드]를 해서 백업해두세요!")
+
+                # 편집 가능한 데이터프레임
                 edited_df = st.data_editor(
                     df, 
-                    num_rows="dynamic", # 행 추가/삭제 허용
+                    num_rows="dynamic",
                     use_container_width=True,
                     key="editor"
                 )
                 
                 # 저장 버튼
                 if st.button("변경사항 저장하기 💾"):
-                    # 편집된 데이터를 다시 세션 상태에 저장
-                    st.session_state.donors = edited_df.to_dict("records")
-                    st.rerun() # 새로고침해서 총액 반영
+                    new_data = edited_df.to_dict("records")
+                    st.session_state.donors = new_data
+                    save_donors(new_data) # CSV 파일로도 저장!
+                    st.success("저장 완료! (donors.csv 업데이트됨)")
+                    st.rerun()
+
+                # 🔥 [백업용] CSV 다운로드 버튼
+                csv_data = df.to_csv(index=False).encode('utf-8-sig') # 한글 깨짐 방지
+                st.download_button(
+                    label="📂 명단 다운로드 (백업용)",
+                    data=csv_data,
+                    file_name="donors.csv",
+                    mime="text/csv"
+                )
             
             elif password:
                 st.error("비밀번호가 틀렸습니다.")
             else:
-                # 비밀번호 입력 전에는 그냥 목록만 보여줌
                 st.dataframe(df, use_container_width=True, hide_index=True)
                 
         else:
-            # 관리자가 아니면 그냥 보기만 가능
             st.dataframe(df, use_container_width=True, hide_index=True)
 
 # 2. 메인 화면 안내 문구
@@ -221,13 +250,11 @@ if menu == "🏆 자격증 발급소":
             
             # --- 폰트 로드 ---
             try:
-                # 1. 제목용 궁서체
                 try:
                     font_header = ImageFont.truetype(FONT_PATH_TITLE, FONT_SIZE_HEADER)
                 except:
                     font_header = ImageFont.truetype(FONT_PATH_TITLE, FONT_SIZE_HEADER, index=0)
 
-                # 2. 본문용 기본 폰트
                 font_desc = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_DESC)
                 font_footer = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_FOOTER)
                 font_stamp = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_STAMP)
@@ -238,27 +265,21 @@ if menu == "🏆 자격증 발급소":
                 font_footer = ImageFont.load_default()
                 font_stamp = ImageFont.load_default()
 
-            # [그리기 0] '자 격 증' 왕글씨
             draw.text((HEADER_X, HEADER_Y), "자 격 증", fill=TEXT_COLOR, font=font_header, anchor="mm")
 
-            # [그리기 1] 이름
             full_name = f"성 명 : {user_name}"
             fitted_name_font = get_fitted_title_font(full_name, MAX_WIDTH, draw, FONT_PATH_MAIN, FONT_SIZE_NAME)
             draw.text((NAME_X, NAME_Y), full_name, fill=TEXT_COLOR, font=fitted_name_font)
             
-            # [그리기 2] 자격명
             full_title = f"자 격 : {cert_title_input}"
             fitted_title_font = get_fitted_title_font(full_title, MAX_WIDTH, draw, FONT_PATH_MAIN, FONT_SIZE_TITLE_DEFAULT)
             draw.text((TITLE_X, TITLE_Y), full_title, fill=TEXT_COLOR, font=fitted_title_font)
             
-            # [그리기 3] 설명
             wrapped_desc = wrap_text(cert_desc_input, font_desc, MAX_WIDTH, draw)
             draw.text((DESC_X, DESC_Y), wrapped_desc, fill=TEXT_COLOR, font=font_desc, spacing=15)
             
-            # [그리기 4] 하단 문구
             draw.text((FOOTER_X, FOOTER_Y), footer_text, fill=TEXT_COLOR, font=font_footer)
 
-            # [그리기 5] 도장
             try:
                 stamp_image = Image.open("stamp_frame.png").convert("RGBA")
                 stamp_draw = ImageDraw.Draw(stamp_image)
@@ -277,10 +298,8 @@ if menu == "🏆 자격증 발급소":
             except Exception as e:
                 st.warning(f"도장 오류: {e}")
 
-            # 결과 보여주기
             st.image(bg_image, caption="완성된 자격증", use_container_width=True)
             
-            # 저장 버튼
             buf = io.BytesIO()
             bg_image.save(buf, format="PNG")
             st.download_button("이미지 저장 📥", buf.getvalue(), f"{user_name}_자격증.png", "image/png")
