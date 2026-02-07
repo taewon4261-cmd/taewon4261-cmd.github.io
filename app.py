@@ -13,14 +13,14 @@ st.set_page_config(
 # [설정 영역]
 # ==========================================
 
-# 🅰️ 폰트 파일 설정 (파일 2개를 씁니다!)
-# 1. 본문용 폰트 (기존 파일)
-FONT_PATH_MAIN = "gungseo.ttc"
-# 2. 제목용 궁서체 폰트 (새로 업로드 하세요!)
+# 🅰️ 폰트 파일 설정
+# 1. 본문용 폰트 (가독성 좋은 고딕체 등)
+FONT_PATH_MAIN ="gungseo.ttc" 
+# 2. 제목용 궁서체 폰트 (상단 '자격증' 글씨용)
 FONT_PATH_TITLE = "gungseo.ttc" 
 
 # 🅱️ 좌표 및 크기 설정
-# 상단 '자격증' 왕글씨 (궁서체 적용 예정)
+# 상단 '자격증' 왕글씨 위치
 HEADER_X, HEADER_Y = 380, 160
 FONT_SIZE_HEADER = 80 
 
@@ -114,13 +114,19 @@ with st.sidebar:
     # 구분선
     st.markdown("---")
 
-    # 🟢 [여기로 이동함] 자격증 입력 폼이 메뉴 바로 밑에 옴
+    # 🟢 [수정됨] 자격증 입력 폼
     if menu == "🏆 자격증 발급소":
         st.subheader("📝 자격증 정보 입력")
         
-        # 입력 변수들을 미리 초기화 (나중에 에러 방지)
         user_name = st.text_input("이름", value="홍길동")
-        selected_cert = st.selectbox("자격증 종류", list(CERT_DB.keys()))
+        
+        # 🔑 [핵심 로직] '직접 입력'을 맨 위로 올리는 코드
+        cert_list = list(CERT_DB.keys())
+        if "직접 입력" in cert_list:
+            cert_list.remove("직접 입력") # 리스트에서 뺀 다음
+            cert_list.insert(0, "직접 입력") # 맨 앞에 다시 넣기
+            
+        selected_cert = st.selectbox("자격증 종류", cert_list)
 
         if selected_cert == "직접 입력":
             cert_title_input = st.text_input("자격증 이름", value="코딩 천재 1급")
@@ -128,13 +134,11 @@ with st.sidebar:
             footer_text = st.text_input("발급 기관", value="코딩 협회")
             stamp_text_input = st.text_input("도장 문구 (띄어쓰기로 줄바꿈)", value="참 잘했어요")
         else:
-            # 선택된 값 자동 세팅
             cert_title_input = selected_cert
             cert_desc_input = CERT_DB[selected_cert]["desc"]
             footer_text = CERT_DB[selected_cert]["footer"]
             stamp_text_input = CERT_DB[selected_cert]["stamp_text"]
 
-    # 🟢 [여기로 이동함] 후원하기가 제일 밑으로 옴
     st.markdown("---")
     st.header("☕ 개발자 응원하기")
     st.markdown("재밌게 즐기셨다면 100원만..🙇‍♂️")
@@ -142,7 +146,7 @@ with st.sidebar:
     st.caption("토스/카뱅 복사용")
 
 # 2. 메인 화면 안내 문구
-st.info("👈 **왼쪽 상단의 화살표(>>)**를 눌러 정보 입력창을 열어주세요!")
+st.info("👈 **왼쪽 상단의 화살표(>)**를 눌러 정보 입력창을 열어주세요!")
 
 # 3. 본문 로직
 if menu == "🏆 자격증 발급소":
@@ -154,20 +158,20 @@ if menu == "🏆 자격증 발급소":
             bg_image = Image.open("certificate_bg.png")
             draw = ImageDraw.Draw(bg_image)
             
-            # --- 폰트 로드 (파일 2개 사용!) ---
+            # --- 폰트 로드 ---
             try:
-                # 1. 제목용 궁서체 (없으면 그냥 기본 폰트로 대체됨)
+                # 1. 제목용 궁서체 (.ttc 파일 적용!)
                 try:
                     font_header = ImageFont.truetype(FONT_PATH_TITLE, FONT_SIZE_HEADER)
                 except:
-                    font_header = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_HEADER)
+                    font_header = ImageFont.truetype(FONT_PATH_TITLE, FONT_SIZE_HEADER, index=0)
 
                 # 2. 본문용 기본 폰트
                 font_desc = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_DESC)
                 font_footer = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_FOOTER)
                 font_stamp = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_STAMP)
             except:
-                st.error("🚨 폰트 파일 오류! 폴더에 font.ttf 파일이 있는지 확인하세요.")
+                st.error("🚨 폰트 로드 실패! 'gungseo.ttc' 또는 'font.ttf' 파일이 있는지 확인하세요.")
                 font_header = ImageFont.load_default()
                 font_desc = ImageFont.load_default()
                 font_footer = ImageFont.load_default()
@@ -178,7 +182,6 @@ if menu == "🏆 자격증 발급소":
 
             # [그리기 1] 이름
             full_name = f"성 명 : {user_name}"
-            # 이름은 본문용 폰트(FONT_PATH_MAIN) 사용
             fitted_name_font = get_fitted_title_font(full_name, MAX_WIDTH, draw, FONT_PATH_MAIN, FONT_SIZE_NAME)
             draw.text((NAME_X, NAME_Y), full_name, fill=TEXT_COLOR, font=fitted_name_font)
             
@@ -200,10 +203,8 @@ if menu == "🏆 자격증 발급소":
                 stamp_draw = ImageDraw.Draw(stamp_image)
                 final_stamp_text = stamp_text_input.replace(" ", "\n")
                 
-                # 도장 중앙 정렬 계산
                 left, top, right, bottom = stamp_draw.multiline_textbbox((0, 0), final_stamp_text, font=font_stamp, spacing=10, align='center')
-                text_w = right - left
-                text_h = bottom - top
+                text_w, text_h = right - left, bottom - top
                 
                 stamp_w, stamp_h = stamp_image.size
                 text_x = (stamp_w - text_w) / 2 + STAMP_TEXT_X_OFFSET
@@ -225,7 +226,7 @@ if menu == "🏆 자격증 발급소":
             
         except Exception as e:
             st.error(f"오류 발생: {e}")
-            st.info("파일 확인: certificate_bg.png, stamp_frame.png, font.ttf, gungseo.ttf")
+            st.info("파일 확인: certificate_bg.png, gungseo.ttc, font.ttf")
 
 elif menu == "🔮 심리테스트 (준비중)":
     st.title("🔮 나의 숨겨진 성격 테스트")
