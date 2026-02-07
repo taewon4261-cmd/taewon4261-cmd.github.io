@@ -154,7 +154,8 @@ def get_fitted_title_font(text, max_width, draw, font_path, start_size, min_size
 
 # 1. 🏠 시작 화면 (HOME)
 if st.session_state.page_state == 'HOME':
-    st.title("🎖️ 대국민 쓸데없는 자격증 발급소")
+    # 여기 제목 뒤에 (Ver.2)를 붙여서 저장해보세요!
+    st.title("🎖️ 대국민 쓸데없는 자격증 발급소 (Ver.2)")
     st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDdtY2J6eHoxMXZ6bHoxMXZ6bHoxMXZ6bHoxMXZ6bHoxMXZ6bHoxMSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7bu3XilJ5BOiSGic/giphy.gif", width=300)
     st.markdown("### 당신의 잉여력을 증명하세요!")
     
