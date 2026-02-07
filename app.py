@@ -212,7 +212,7 @@ with st.sidebar:
 
         if is_admin:
             password = st.text_input("관리자 비밀번호", type="password")
-            if password == "1234": # 🔐 비밀번호
+            if password == "0416": # 🔐 비밀번호
                 st.success("관리자 인증 성공! 데이터를 관리하세요.")
                 st.info("⚠️ 중요: 파일 업데이트 시 데이터가 날아갈 수 있습니다. 꼭 [명단 다운로드]를 해서 백업해두세요!")
 
