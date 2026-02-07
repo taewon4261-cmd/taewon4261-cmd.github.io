@@ -16,7 +16,7 @@ st.set_page_config(
 # ==========================================
 
 # 🅰️ 폰트 파일 설정
-FONT_PATH_MAIN = "font.ttf" 
+FONT_PATH_MAIN = "gungseo.ttc"
 FONT_PATH_TITLE = "gungseo.ttc" 
 
 # 🅱️ 좌표 및 크기 설정
