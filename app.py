@@ -72,6 +72,9 @@ def load_donors():
     if os.path.exists(DONOR_FILE):
         try:
             df = pd.read_csv(DONOR_FILE)
+            # 데이터 정제: '금액' 컬럼의 NaN을 0으로 채우고 정수로 변환
+            if '금액' in df.columns:
+                df['금액'] = df['금액'].fillna(0).astype(int)
             return df.to_dict('records')
         except:
             return []
@@ -91,12 +94,23 @@ def save_donors(donor_list):
 if 'donors' not in st.session_state:
     st.session_state.donors = load_donors()
 
-# 총 모금액 계산
+# 🛡️ [수정됨] 총 모금액 계산 (에러 방지 기능 추가)
 def get_total_donation():
     if not st.session_state.donors:
         return 0
-    # 문자열로 저장됐을 수도 있으니 int로 변환
-    return sum(int(item['금액']) for item in st.session_state.donors)
+    
+    total = 0
+    for item in st.session_state.donors:
+        try:
+            # 금액을 가져오는데, 없거나 이상하면 0원으로 처리
+            amount = item.get('금액', 0)
+            if pd.isna(amount) or amount == '':
+                amount = 0
+            total += int(float(amount)) # float로 먼저 바꾸고 int로 (소수점 에러 방지)
+        except:
+            continue # 에러나면 그냥 넘어감 (멈추지 않음)
+            
+    return total
 
 
 # --- 🛠️ 헬퍼 함수들 ---
@@ -158,160 +172,3 @@ with st.sidebar:
             cert_list.insert(0, "직접 입력")
             
         selected_cert = st.selectbox("자격증 종류", cert_list)
-
-        if selected_cert == "직접 입력":
-            cert_title_input = st.text_input("자격증 이름", value="코딩 천재 1급")
-            cert_desc_input = st.text_area("내용", value="내용을 입력하세요.")
-            footer_text = st.text_input("발급 기관", value="코딩 협회")
-            stamp_text_input = st.text_input("도장 문구 (띄어쓰기로 줄바꿈)", value="참 잘했어요")
-        else:
-            cert_title_input = selected_cert
-            cert_desc_input = CERT_DB[selected_cert]["desc"]
-            footer_text = CERT_DB[selected_cert]["footer"]
-            stamp_text_input = CERT_DB[selected_cert]["stamp_text"]
-
-    st.markdown("---")
-    
-    # 🟢 개발자 노트북 사주기 (자동 합산 적용)
-    total_money = get_total_donation()
-    
-    st.header(" 티끌모아 노트북 💻 ")
-    st.markdown(f"""
-    코딩하다가 자꾸 렉이 걸려요... 😭  
-    여러분의 **소중한 100원**을 모아  
-    **개발용 노트북**을 장만하겠습니다!🙇‍♂️
-    
-    **(모금액: {total_money:,}원 / 1,500,000원)**
-    """)
-    st.code("1000-4564-3898", language="text")
-    st.caption("토스/카뱅 복사해서 '엔터키' 하나 사주기 ⌨️")
-    
-    # 🟢 [업그레이드 기능] 후원자 목록 및 편집
-    with st.expander("📜 명예의 전당 (후원자 목록)"):
-        
-        is_admin = st.checkbox("관리자 모드 (수정/삭제)")
-        
-        if st.session_state.donors:
-            df = pd.DataFrame(st.session_state.donors)
-        else:
-            df = pd.DataFrame(columns=["이름", "금액"])
-
-        if is_admin:
-            password = st.text_input("관리자 비밀번호", type="password")
-            if password == "0416": # 🔐 비밀번호
-                st.success("관리자 인증 성공! 데이터를 관리하세요.")
-                st.info("⚠️ 중요: 파일 업데이트 시 데이터가 날아갈 수 있습니다. 꼭 [명단 다운로드]를 해서 백업해두세요!")
-
-                # 편집 가능한 데이터프레임
-                edited_df = st.data_editor(
-                    df, 
-                    num_rows="dynamic",
-                    use_container_width=True,
-                    key="editor"
-                )
-                
-                # 저장 버튼
-                if st.button("변경사항 저장하기 💾"):
-                    new_data = edited_df.to_dict("records")
-                    st.session_state.donors = new_data
-                    save_donors(new_data) # CSV 파일로도 저장!
-                    st.success("저장 완료! (donors.csv 업데이트됨)")
-                    st.rerun()
-
-                # 🔥 [백업용] CSV 다운로드 버튼
-                csv_data = df.to_csv(index=False).encode('utf-8-sig') # 한글 깨짐 방지
-                st.download_button(
-                    label="📂 명단 다운로드 (백업용)",
-                    data=csv_data,
-                    file_name="donors.csv",
-                    mime="text/csv"
-                )
-            
-            elif password:
-                st.error("비밀번호가 틀렸습니다.")
-            else:
-                st.dataframe(df, use_container_width=True, hide_index=True)
-                
-        else:
-            st.dataframe(df, use_container_width=True, hide_index=True)
-
-# 2. 메인 화면 안내 문구
-st.info("👈 **왼쪽 상단의 화살표(>)**를 눌러 정보 입력창을 열어주세요!")
-
-# 3. 본문 로직
-if menu == "🏆 자격증 발급소":
-    st.title("🎖️ 대국민 쓸데없는 자격증 발급소")
-    st.caption("오늘 당신의 잉여력을 증명하세요!")
-
-    if st.button("자격증 발급하기 🖨️", type="primary"):
-        try:
-            bg_image = Image.open("certificate_bg.png")
-            draw = ImageDraw.Draw(bg_image)
-            
-            # --- 폰트 로드 ---
-            try:
-                try:
-                    font_header = ImageFont.truetype(FONT_PATH_TITLE, FONT_SIZE_HEADER)
-                except:
-                    font_header = ImageFont.truetype(FONT_PATH_TITLE, FONT_SIZE_HEADER, index=0)
-
-                font_desc = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_DESC)
-                font_footer = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_FOOTER)
-                font_stamp = ImageFont.truetype(FONT_PATH_MAIN, FONT_SIZE_STAMP)
-            except:
-                st.error("🚨 폰트 로드 실패! 'gungseo.ttc' 또는 'font.ttf' 확인 필요.")
-                font_header = ImageFont.load_default()
-                font_desc = ImageFont.load_default()
-                font_footer = ImageFont.load_default()
-                font_stamp = ImageFont.load_default()
-
-            draw.text((HEADER_X, HEADER_Y), "자 격 증", fill=TEXT_COLOR, font=font_header, anchor="mm")
-
-            full_name = f"성 명 : {user_name}"
-            fitted_name_font = get_fitted_title_font(full_name, MAX_WIDTH, draw, FONT_PATH_MAIN, FONT_SIZE_NAME)
-            draw.text((NAME_X, NAME_Y), full_name, fill=TEXT_COLOR, font=fitted_name_font)
-            
-            full_title = f"자 격 : {cert_title_input}"
-            fitted_title_font = get_fitted_title_font(full_title, MAX_WIDTH, draw, FONT_PATH_MAIN, FONT_SIZE_TITLE_DEFAULT)
-            draw.text((TITLE_X, TITLE_Y), full_title, fill=TEXT_COLOR, font=fitted_title_font)
-            
-            wrapped_desc = wrap_text(cert_desc_input, font_desc, MAX_WIDTH, draw)
-            draw.text((DESC_X, DESC_Y), wrapped_desc, fill=TEXT_COLOR, font=font_desc, spacing=15)
-            
-            draw.text((FOOTER_X, FOOTER_Y), footer_text, fill=TEXT_COLOR, font=font_footer)
-
-            try:
-                stamp_image = Image.open("stamp_frame.png").convert("RGBA")
-                stamp_draw = ImageDraw.Draw(stamp_image)
-                final_stamp_text = stamp_text_input.replace(" ", "\n")
-                
-                left, top, right, bottom = stamp_draw.multiline_textbbox((0, 0), final_stamp_text, font=font_stamp, spacing=10, align='center')
-                text_w, text_h = right - left, bottom - top
-                
-                stamp_w, stamp_h = stamp_image.size
-                text_x = (stamp_w - text_w) / 2 + STAMP_TEXT_X_OFFSET
-                text_y = (stamp_h - text_h) / 2 + STAMP_TEXT_Y_OFFSET
-                
-                stamp_draw.multiline_text((text_x, text_y), final_stamp_text, fill=STAMP_COLOR, font=font_stamp, spacing=10, align='center')
-                stamp_image = stamp_image.resize(STAMP_SIZE)
-                bg_image.paste(stamp_image, (STAMP_X, STAMP_Y), stamp_image)
-            except Exception as e:
-                st.warning(f"도장 오류: {e}")
-
-            st.image(bg_image, caption="완성된 자격증", use_container_width=True)
-            
-            buf = io.BytesIO()
-            bg_image.save(buf, format="PNG")
-            st.download_button("이미지 저장 📥", buf.getvalue(), f"{user_name}_자격증.png", "image/png")
-            
-        except Exception as e:
-            st.error(f"오류 발생: {e}")
-            st.info("파일 확인: certificate_bg.png, gungseo.ttc, font.ttf")
-
-elif menu == "🔮 심리테스트 (준비중)":
-    st.title("🔮 나의 숨겨진 성격 테스트")
-    st.info("이 기능은 곧 오픈됩니다! 조금만 기다려주세요.")
-
-elif menu == "🤖 AI 캐릭터 (준비중)":
-    st.title("🤖 AI 캐릭터 만들기")
-    st.warning("개발자가 열심히 코딩 중입니다... 💦")
