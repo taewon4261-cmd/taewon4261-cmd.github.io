@@ -19,6 +19,7 @@ st.set_page_config(
 # 네이버나 구글 서치콘솔에서 발급받은 <meta ... /> 태그를 아래 따옴표 안에 붙여넣으세요.
 st.markdown("""
 <meta name="naver-site-verification" content="b8c1e47b59963da338d13156f6e09dc653522af6" />
+<meta name="google-site-verification" content="EqmIqtAk3RUCATueXn5fH7tRPkfRouvKJCiYFrnBuf8" />
 """, unsafe_allow_html=True)
 
 # ==========================================
