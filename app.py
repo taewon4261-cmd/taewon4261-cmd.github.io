@@ -316,12 +316,14 @@ elif st.session_state.page_state == 'RESULT':
 # ==========================================
 with st.sidebar:
     st.markdown("---")
-    st.header("")
+    st.header("🏆 수상자를 위한 기념품점")
     st.markdown("""
+        자격증 발급을 축하드립니다!  
+        오늘 고생한 나에게 주는 작은 선물을 골라보세요. 😊
     """)
 
-    # 1. 텍스트 링크 (배너보다 먼저 배치하여 확실히 보이게 함)
-    st.markdown("### [👉 쿠팡 홈 바로가기 (클릭)](https://link.coupang.com/a/dZVMb8)")
+    # 1. 텍스트 링크 (배너보다 먼저 배치)
+    st.markdown("### [👉 내 선물 고르러 가기 (클릭)](https://link.coupang.com/a/dZVMb8)")
     
     st.markdown("---")
 
