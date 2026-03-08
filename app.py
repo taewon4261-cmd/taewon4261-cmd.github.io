@@ -9,7 +9,7 @@ import os
 # [페이지 기본 설정]
 # ==========================================
 st.set_page_config(
-    page_title="🎖️ 상장 제조기 - 온라인 자격증 발급소",
+    page_title=" 상장 제조기 - 온라인 자격증 발급소",
     page_icon="🎖️",
     layout="centered",
     initial_sidebar_state="collapsed" 
