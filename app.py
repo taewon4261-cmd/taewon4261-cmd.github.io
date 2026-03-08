@@ -30,6 +30,15 @@ st.markdown("""
 <meta property="og:description" content="클릭 몇 번으로 쉽고 재미있게 상장을 제작하고 다운로드하세요." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://funny-license.streamlit.app" />
+
+<!-- 구글 애널리틱스(GA4) 추적 코드 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-M9W2N8WJ7Y"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-M9W2N8WJ7Y');
+</script>
 """, unsafe_allow_html=True)
 
 # ==========================================
