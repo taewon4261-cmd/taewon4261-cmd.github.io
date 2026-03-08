@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image, ImageDraw, ImageFont
 import io
 import pandas as pd
@@ -15,31 +16,43 @@ st.set_page_config(
     initial_sidebar_state="collapsed" 
 )
 
-# [SEO 및 사이트 소유 확인 직접 설정]
-st.markdown("""
-<!-- 네이버/구글 소유 확인 -->
-<meta name="naver-site-verification" content="b8c1e47b59963da338d13156f6e09dc653522af6" />
-<meta name="google-site-verification" content="EqmIqtAk3RUCATueXn5fH7tRPkfRouvKJCiYFrnBuf8" />
+# [SEO 및 사이트 소유 확인 강제 적용 - Head 섹션 주입]
+# 스트림릿의 특성상 본문에 있는 태그를 헤드로 강제 이동시켜 인증 성공률을 높입니다.
+components.html(
+    f"""
+    <script>
+        var head = window.parent.document.head;
+        
+        // 1. 네이버 소유 확인 메타 태그
+        var naverTag = window.parent.document.createElement('meta');
+        naverTag.name = "naver-site-verification";
+        naverTag.content = "b8c1e47b59963da338d13156f6e09dc653522af6";
+        head.appendChild(naverTag);
+        
+        // 2. 구글 소유 확인 메타 태그
+        var googleTag = window.parent.document.createElement('meta');
+        googleTag.name = "google-site-verification";
+        googleTag.content = "EqmIqtAk3RUCATueXn5fH7tRPkfRouvKJCiYFrnBuf8";
+        head.appendChild(googleTag);
 
-<!-- 사이트 설명 및 키워드 -->
-<meta name="description" content="세상에 하나뿐인 나만의 쓸데없는 자격증과 상장을 무료로 만들어보세요! 상장 제조기 온라인 발급소입니다." />
-<meta name="keywords" content="상장제조기, 자격증만들기, 온라인상장, 재미있는선물, 수료증제작" />
+        // 3. 구글 애널리틱스(GA4) 추적 코드
+        var gaScript = window.parent.document.createElement('script');
+        gaScript.async = true;
+        gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-M9W2N8WJ7Y';
+        head.appendChild(gaScript);
 
-<!-- Open Graph (SNS 공유 시 노출되는 정보) -->
-<meta property="og:title" content="🎖️ 상장 제조기 - 나만의 자격증 만들기" />
-<meta property="og:description" content="클릭 몇 번으로 쉽고 재미있게 상장을 제작하고 다운로드하세요." />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://funny-license.streamlit.app" />
-
-<!-- 구글 애널리틱스(GA4) 추적 코드 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-M9W2N8WJ7Y"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-M9W2N8WJ7Y');
-</script>
-""", unsafe_allow_html=True)
+        var gaConfig = window.parent.document.createElement('script');
+        gaConfig.innerHTML = `
+            window.parent.dataLayer = window.parent.dataLayer || [];
+            function gtag(){{window.parent.dataLayer.push(arguments);}}
+            gtag('js', new Date());
+            gtag('config', 'G-M9W2N8WJ7Y');
+        `;
+        head.appendChild(gaConfig);
+    </script>
+    """,
+    height=0,
+)
 
 # ==========================================
 # [설정 영역]
