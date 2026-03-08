@@ -20,9 +20,9 @@ st.set_page_config(
 # 구글/네이버 로봇이 최근에는 <body>에 있는 태그도 잘 읽어갑니다.
 st.markdown(f"""
     <!-- 네이버 소유 확인 -->
-    <meta name="naver-site-verification" content="b8c1e47b59963da338d13156f6e09dc653522af6" />
+    <meta name="naver-site-verification" content="6873fa856759f682cd9edaaf55ad6bf97b064dff" />
     <!-- 구글 소유 확인 -->
-    <meta name="google-site-verification" content="EqmIqtAk3RUCATueXn5fH7tRPkfRouvKJCiYFrnBuf8" />
+    <meta name="google-site-verification" content="pL1kT5TfNICEjpMKAW7dJC6q2_HB98_hEt0DVRnMTas" />
     
     <!-- 사이트 설명 -->
     <meta name="description" content="나만의 쓸데없는 자격증과 상장을 1분 만에 무료로 제작해보세요! (상장번호 포함)" />
@@ -33,8 +33,8 @@ st.markdown(f"""
     
     <!-- 구글 인증용 텍스트 노출 (최후의 수단: 로봇이 본문 텍스트로도 읽음) -->
     <div style="display:none;">
-        naver-site-verification: b8c1e47b59963da338d13156f6e09dc653522af6
-        google-site-verification: EqmIqtAk3RUCATueXn5fH7tRPkfRouvKJCiYFrnBuf8
+        naver-site-verification: 6873fa856759f682cd9edaaf55ad6bf97b064dff
+        google-site-verification: pL1kT5TfNICEjpMKAW7dJC6q2_HB98_hEt0DVRnMTas
     </div>
 """, unsafe_allow_html=True)
 
